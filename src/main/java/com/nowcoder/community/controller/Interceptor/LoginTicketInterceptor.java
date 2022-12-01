@@ -31,7 +31,7 @@ public class LoginTicketInterceptor implements HandlerInterceptor {
         if (ticket != null) {
             // 查询凭证
             LoginTicket loginTicket = userService.findLoginTicket(ticket);
-            // 检查凭证是否有效
+            // 检查凭证是否有效（是否被激活 or 是否过期）
             if (loginTicket != null && loginTicket.getStatus() == 0 && loginTicket.getExpired().after(new Date())) {
                 // 根据凭证查询用户
                 User user = userService.findUserById(loginTicket.getUserId());
@@ -47,7 +47,7 @@ public class LoginTicketInterceptor implements HandlerInterceptor {
     public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
         User user = hostHolder.getUser();
         if (user != null && modelAndView != null) {
-            // 在模版调用之前handle之后将user存入model
+            // 在模版调用之前handle之后将user存入model，方便前端判断是否登陆的状态，以及获取用户的信息。
             modelAndView.addObject("loginUser", user);
         }
     }

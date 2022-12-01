@@ -169,7 +169,7 @@ public class LoginController implements CommunityConstant {
         mailClient.sendMail(email, "找回密码", content);
 
         // 保存验证码
-        session.setAttribute("verifyCode", code);
+        session.setAttribute(email + "verifyCode", code);
 
         return CommunityUtil.getJSONString(0);
     }
@@ -177,7 +177,7 @@ public class LoginController implements CommunityConstant {
     // 重置密码
     @RequestMapping(path = "/forget/password", method = RequestMethod.POST)
     public String resetPassword(String email, String verifyCode, String password, Model model, HttpSession session) {
-        String code = (String) session.getAttribute("verifyCode");
+        String code = (String) session.getAttribute(email + "verifyCode");
         if (StringUtils.isBlank(verifyCode) || StringUtils.isBlank(code) || !code.equalsIgnoreCase(verifyCode)) {
             model.addAttribute("codeMsg", "验证码错误!");
             return "/site/forget";

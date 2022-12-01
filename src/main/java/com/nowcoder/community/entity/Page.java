@@ -60,6 +60,7 @@ public class Page {
      */
     public int getOffset() {
         // current * limit - limit
+        // 他的偏移就是当前页码的前一个页所包含的页码数量乘以每页的限制就获得了此页前面有多少页
         return (current - 1) * limit;
     }
 

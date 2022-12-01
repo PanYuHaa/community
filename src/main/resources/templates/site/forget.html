@@ -75,7 +75,7 @@
 				<div class="form-group row mt-4">
 					<label for="verifycode" class="col-sm-2 col-form-label text-right">验证码:</label>
 					<div class="col-sm-6">
-						<input type="text" th:class="|form-control ${codeMsg!=null?'is-invalid':''}|" th:value="${param.verifyCode}" name="verifyCode" id="verifycode" placeholder="请输入验证码!">
+						<input type="text" th:class="|form-control ${codeMsg!=null?'is-invalid':''}|" th:value="${param.email+param.verifyCode}" name="verifyCode" id="verifycode" placeholder="请输入验证码!">
 						<div class="invalid-feedback" th:text="${codeMsg}">
 							验证码不正确!
 						</div>
