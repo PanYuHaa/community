@@ -1,8 +1,11 @@
 package com.nowcoder.community.controller;
 
-import com.nowcoder.community.annotiation.LoginRequired;
+import com.nowcoder.community.annotation.LoginRequired;
 import com.nowcoder.community.entity.User;
+import com.nowcoder.community.service.FollowService;
+import com.nowcoder.community.service.LikeService;
 import com.nowcoder.community.service.UserService;
+import com.nowcoder.community.util.CommunityConstant;
 import com.nowcoder.community.util.CommunityUtil;
 import com.nowcoder.community.util.HostHolder;
 import org.apache.commons.lang3.StringUtils;
@@ -22,11 +25,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Map;
 
 @Controller
 @RequestMapping("/user")
-public class UserController {
+public class UserController implements CommunityConstant {
 
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
@@ -45,6 +47,12 @@ public class UserController {
     @Autowired
     private HostHolder hostHolder;
 
+    @Autowired
+    private LikeService likeService;
+
+    @Autowired
+    private FollowService followService;
+
     @LoginRequired
     @RequestMapping(path = "/setting", method = RequestMethod.GET)
     public String getSettingPage() {
@@ -54,16 +62,13 @@ public class UserController {
     @LoginRequired
     @RequestMapping(path = "/upload", method = RequestMethod.POST)
     public String uploadHeader(MultipartFile headerImage, Model model) {
-        // headerImage就是上传的文件
         if (headerImage == null) {
             model.addAttribute("error", "您还没有选择图片!");
             return "/site/setting";
         }
 
-        // 获取上传的文件名
         String fileName = headerImage.getOriginalFilename();
-        // 最后一个点的索引后面开始取文件类型，即后缀
-        String suffix = fileName.substring(fileName.lastIndexOf(".") + 1);
+        String suffix = fileName.substring(fileName.lastIndexOf("."));
         if (StringUtils.isBlank(suffix)) {
             model.addAttribute("error", "文件的格式不正确!");
             return "/site/setting";
@@ -95,43 +100,51 @@ public class UserController {
         // 服务器存放路径
         fileName = uploadPath + "/" + fileName;
         // 文件后缀
-        String suffix = fileName.substring(fileName.lastIndexOf(".") + 1);
+        String suffix = fileName.substring(fileName.lastIndexOf("."));
         // 响应图片
         response.setContentType("image/" + suffix);
         try (
-            // 创建文件的输入流，写在try里面根据java7的特性会自动在后面添加finally关闭输入流
             FileInputStream fis = new FileInputStream(fileName);
-            // IO操作抛出异常，获取输出流，这个流是response的，会随着它的生命周期将io流关闭的
             OutputStream os = response.getOutputStream();
         ) {
-            // 建立读写缓冲区
             byte[] buffer = new byte[1024];
-            // 游标标记是否读到数据，读到-1为结束
             int b = 0;
             while ((b = fis.read(buffer)) != -1) {
-                // write({缓冲区}，{起始位置}，{写入谁})
                 os.write(buffer, 0, b);
             }
         } catch (IOException e) {
             logger.error("读取头像失败: " + e.getMessage());
         }
-        // 我们将文件放到Response的输出流里面
     }
 
-    // 修改密码
-    @RequestMapping(path = "/updatePassword", method = RequestMethod.POST)
-    public String updatePassword(String oldPassword, String newPassword, Model model) {
-        // 获取当前用户
-        User user = hostHolder.getUser();
-        Map<String, Object> map = userService.updatePassword(user.getId(), oldPassword, newPassword);
-        // 如果map是空的代表我们设定的场景都不存在，重定向到登出界面再重定向登陆界面，（这里课程答案个人觉得不太对，比如你重复密码输入错误了以后，他直接返回登陆界面了直接登出了什么鬼？？）
-        if (map == null || map.isEmpty()) {
-            return "redirect:/logout";
-        } else {
-            // 正常传递给view层
-            model.addAttribute("oldPasswordMsg", map.get("oldPasswordMsg"));
-            model.addAttribute("newPasswordMsg", map.get("newPasswordMsg"));
-            return "/site/setting";
+    // 个人主页
+    @RequestMapping(path = "/profile/{userId}", method = RequestMethod.GET)
+    public String getProfilePage(@PathVariable("userId") int userId, Model model) {
+        User user = userService.findUserById(userId);
+        if (user == null) {
+            throw new RuntimeException("该用户不存在!");
         }
+
+        // 用户
+        model.addAttribute("user", user);
+        // 点赞数量
+        int likeCount = likeService.findUserLikeCount(userId);
+        model.addAttribute("likeCount", likeCount);
+
+        // 关注数量
+        long followeeCount = followService.findFolloweeCount(userId, ENTITY_TYPE_USER);
+        model.addAttribute("followeeCount", followeeCount);
+        // 粉丝数量
+        long followerCount = followService.findFollowerCount(ENTITY_TYPE_USER, userId);
+        model.addAttribute("followerCount", followerCount);
+        // 是否已关注
+        boolean hasFollowed = false;
+        if (hostHolder.getUser() != null) {
+            hasFollowed = followService.hasFollowed(hostHolder.getUser().getId(), ENTITY_TYPE_USER, userId);
+        }
+        model.addAttribute("hasFollowed", hasFollowed);
+
+        return "/site/profile";
     }
+
 }
