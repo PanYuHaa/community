@@ -1,6 +1,6 @@
 package com.nowcoder.community.config;
 
-import com.nowcoder.community.controller.Interceptor.LoginRequiredInterceptor;
+import com.nowcoder.community.controller.interceptor.LoginRequiredInterceptor;
 import com.nowcoder.community.controller.interceptor.LoginTicketInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
