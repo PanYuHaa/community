@@ -32,12 +32,9 @@ public class CommentController implements CommunityConstant {
     @Autowired
     private DiscussPostService discussPostService;
 
-
     @RequestMapping(path = "/add/{discussPostId}", method = RequestMethod.POST)
     public String addComment(@PathVariable("discussPostId") int discussPostId, Comment comment) {
-        // 登陆的用户发帖，获取当前用户id
         comment.setUserId(hostHolder.getUser().getId());
-        // 0为有效
         comment.setStatus(0);
         comment.setCreateTime(new Date());
         commentService.addComment(comment);
@@ -49,19 +46,27 @@ public class CommentController implements CommunityConstant {
             .setEntityType(comment.getEntityType())
             .setEntityId(comment.getEntityId())
             .setData("postId", discussPostId);
-        // 评论的是帖子
         if (comment.getEntityType() == ENTITY_TYPE_POST) {
             DiscussPost target = discussPostService.findDiscussPostById(comment.getEntityId());
             event.setEntityUserId(target.getUserId());
-            // 评论的是评论
         } else if (comment.getEntityType() == ENTITY_TYPE_COMMENT) {
             Comment target = commentService.findCommentById(comment.getEntityId());
             event.setEntityUserId(target.getUserId());
         }
-        // 异步处理消息，不影响你重定向，起到缓冲的作用
         eventProducer.fireEvent(event);
 
-        // 重定向到帖子详情页面
+        if (comment.getEntityType() == ENTITY_TYPE_POST) {
+            // 触发发帖事件
+            event = new Event()
+                // 设置topic
+                .setTopic(TOPIC_PUBLISH)
+                .setUserId(comment.getUserId())
+                .setEntityType(ENTITY_TYPE_POST)
+                .setEntityId(discussPostId);
+            eventProducer.fireEvent(event);
+        }
+
         return "redirect:/discuss/detail/" + discussPostId;
     }
+
 }
